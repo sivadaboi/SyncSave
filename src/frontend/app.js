@@ -24,6 +24,8 @@ let pendingRollbackSnapId = null;
 const localDeviceName    = document.getElementById('local-device-name');
 const daemonStatusText   = document.getElementById('daemon-status-text');
 const titlebarStatus     = document.getElementById('titlebar-status');
+const titlebarRelayStatus = document.getElementById('titlebar-relay-status');
+const relayStatusText     = document.getElementById('relay-status-text');
 
 const statGamesCount     = document.getElementById('stat-games-count');
 const statPeersCount     = document.getElementById('stat-peers-count');
@@ -1230,7 +1232,42 @@ function renderPeers() {
   }
 }
 
+function updateGlobalRelayStatus() {
+  if (!titlebarRelayStatus || !relayStatusText) return;
+
+  const wanRoom = appState.wanRoom || {
+    enabled: !!appState.settings.syncCode,
+    connected: false,
+    state: appState.settings.syncCode ? 'connecting' : 'disconnected'
+  };
+
+  if (!wanRoom.enabled) {
+    titlebarRelayStatus.style.display = 'none';
+    return;
+  }
+
+  titlebarRelayStatus.style.display = 'flex';
+  
+  // Remove existing state classes
+  titlebarRelayStatus.classList.remove('online', 'offline', 'checking');
+
+  if (wanRoom.connected) {
+    titlebarRelayStatus.classList.add('online');
+    relayStatusText.textContent = 'Cloud Online';
+  } else if (wanRoom.state === 'connecting') {
+    titlebarRelayStatus.classList.add('checking');
+    relayStatusText.textContent = 'Cloud Connecting...';
+  } else if (wanRoom.state === 'error') {
+    titlebarRelayStatus.classList.add('offline');
+    relayStatusText.textContent = 'Cloud Error';
+  } else {
+    titlebarRelayStatus.classList.add('offline');
+    relayStatusText.textContent = 'Cloud Offline';
+  }
+}
+
 function renderWanRoom() {
+  updateGlobalRelayStatus();
   const wanRoom = appState.wanRoom || {
     enabled: !!appState.settings.syncCode,
     connected: false,

@@ -208,6 +208,10 @@ input, textarea, code, pre, [contenteditable="true"], .node-id-badge {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.2);
 }
+.status-indicator.checking {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+}
 .indicator-dot {
   width: 6px;
   height: 6px;
@@ -219,6 +223,10 @@ input, textarea, code, pre, [contenteditable="true"], .node-id-badge {
 .status-indicator.offline .indicator-dot {
   background: var(--red);
   box-shadow: 0 0 8px var(--red);
+}
+.status-indicator.checking .indicator-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
 }
 @keyframes pulseDot {
   0%   { transform: scale(0.9); opacity: 0.6; }
