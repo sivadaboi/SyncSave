@@ -75,6 +75,10 @@
       {
         "from": "PRIVACY.md",
         "to": "PRIVACY.md"
+      },
+      {
+        "from": "bin",
+        "to": "bin"
       }
     ],
     "directories": {

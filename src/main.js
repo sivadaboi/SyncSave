@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { spawn } from 'child_process';
 
 let mainWindow = null;
 let tray = null;
@@ -286,37 +287,48 @@ if (!gotTheLock) {
     }
   });
 
-  // Start the background daemon dynamically to avoid running it in secondary instances
-  import('./daemon/index.js')
-    .then(() => {
-      // Electron Startup
-      app.whenReady().then(() => {
-        // Sync startup settings with database state
-        const settings = db.getSettings();
-        if (global.updateStartupSettings) {
-          global.updateStartupSettings(!!settings.startOnBoot);
+  // Start the background Go daemon dynamically to avoid running it in secondary instances
+  const isDev = !app.isPackaged;
+  const daemonBinary = process.platform === 'win32' ? 'syncsave-daemon.exe' : 'syncsave-daemon';
+  const daemonPath = isDev
+    ? path.join(__dirname, `../bin/${daemonBinary}`)
+    : path.join(process.resourcesPath, `bin/${daemonBinary}`);
+
+  console.log(`[App] Spawning Go daemon from path: ${daemonPath}`);
+
+  const daemon = spawn(daemonPath, [], {
+    stdio: 'ignore',
+    detached: true,
+    windowsHide: true
+  });
+  daemon.unref();
+
+  app.on('quit', () => {
+    try {
+      daemon.kill();
+      console.log('[App] Go daemon killed.');
+    } catch (e) {}
+  });
+
+  // Give the daemon a moment to startup
+  setTimeout(() => {
+    // Electron Startup
+    app.whenReady().then(() => {
+      // Sync startup settings with database state
+      const settings = db.getSettings();
+      if (global.updateStartupSettings) {
+        global.updateStartupSettings(!!settings.startOnBoot);
+      }
+
+      createWindow();
+
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          createWindow();
         }
-
-        createWindow();
-
-        app.on('activate', () => {
-          if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-          }
-        });
       });
-    })
-    .catch((err) => {
-      console.error('Failed to start SyncSave background daemon:', err);
-      logErrorToFile(err);
-      try {
-        dialog.showErrorBox(
-          'SyncSave Daemon Startup Error',
-          `The background database/server daemon failed to initialize.\n\nError details:\n${err.stack || err.message || err}`
-        );
-      } catch (dialogErr) {}
-      app.quit();
     });
+  }, 1000);
 
   // Quit when all windows are closed
   app.on('window-all-closed', () => {
